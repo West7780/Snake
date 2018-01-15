@@ -12,8 +12,18 @@ enter the public ip of the host machine instead of local host.
 """
 
 
-import pygame, time, socket
+import time, socket
 from random import randint as r
+
+try:
+    import pygame
+except:
+    try:
+        import pip
+        pip.main(['install', 'pygame'])
+        import pygame
+    except:
+        print('Failed to install pygame, try doing this manually by entering\n\n\tpip install pygame\n\ninto your native console (ex:cmd) with the highest permissions (for cmd right click on cmd.exe and select run as administrator)')
 
 #Socket set up
 socket.setdefaulttimeout(10)
@@ -50,12 +60,14 @@ def generateFoods(d):
     global foods
     foods = []
     if d < 1:
-        for x in range(0,int((width/10)*(height/10)*d)):
-            foods+=[[r(0,width/10),r(0,height/10)]]
+        num = range(0,int((width/10)*(height/10)*d))
     else:
-        for x in range(0,d):
-            foods+=[[r(0,width/10),r(0,height/10)]]
-    print(foods)
+        num = range(0,d)
+    for x in range(0,d):
+        food = [[r(0,width/10),r(0,height/10)]]
+        while food in foods:
+            food = [[r(0,width/10),r(0,height/10)]]
+        
 
 #Function waits for next key press before continuing but also allows the user to quit
 def waitForPress():
