@@ -1,4 +1,4 @@
-import pygame, time, socket
+import pygame, time, socket, pickle
 from random import randint as r
 
 #set up socket
@@ -153,11 +153,14 @@ while GAMESTATE.lower() != "end":
 
     #print(GAMESTATE,GAMEMODE)
     #Online code stuffs
-    try:
+    if 1:
         if GAMEMODE == "TwoPlayerOnlineClient":
-            recived = s.recv(16384).decode('utf-8')
-            exec(recived)
-            tosend = "p"
+            recived = s.recv(16408).decode('utf-8')
+            players[0].tail = recived.split('|')[0].split(',')
+            players[1].tail = recived.split('|')[1].split(',')
+            for f in foods:
+                f.x
+            tosend = "|"
             if "w" in keys:
                 tosend += "1"
             elif "d" in keys:
@@ -173,11 +176,14 @@ while GAMESTATE.lower() != "end":
             for f in foods:
                 pygame.draw.rect(pygame.display.get_surface(), f.color, (f.x*scale,f.y*scale,scale,scale), 0)
         elif GAMEMODE == "TwoPlayerOnlineHost":
+            tosend = []
             for p in players:
-                tosend+=str(p.name)+"|"+str(p.trail)
-            conn.send(tosend.encode('utf-8'))
+                tosend+=[p.tail.join(',')]
+            for f in foods:
+                tosend+=[str(f.x)+','+str(f.y)]
+            conn.send(tosend.join('|').encode('utf-8'))
             keys += conn.recv(1024).decode('utf-8')
-    except:
+    else:
         try:
             if GAMEMODE == "TwoPlayerOnlineClient":
                 s.close()
