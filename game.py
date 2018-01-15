@@ -1,4 +1,4 @@
-import pygame, time, socket, threading
+import pygame, time, socket
 from random import randint as r
 
 #set up socket
@@ -46,18 +46,6 @@ pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height
 pygame.display.flip()
 
 width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
-
-#Handle Client thread
-def ClientControlConn(addr,conn):
-    players+=[player(str(addr))]
-    try:
-        while 1:
-            for p in players:
-                if p.name == str(addr):
-                    p.direct = s.recv(1024).decode('utf-8')
-    except:
-        p.health = False
-        conn.close()
                     
 #Compare List values
 def CompareList(thelist,testvalue):
@@ -185,10 +173,8 @@ while GAMESTATE.lower() != "end":
             for f in foods:
                 pygame.draw.rect(pygame.display.get_surface(), f.color, (f.x*scale,f.y*scale,scale,scale), 0)
         elif GAMEMODE == "TwoPlayerOnlineHost":
-            tosend = "players = []\n"
             for p in players:
-                tosend+="""players += [player('"""+str(p.name)+"""',"""+str(5)+""","""+str(p.color)+""")]
-players[len(players)-1].x, players[len(players)-1].y, players[len(players)-1].trail, players[len(players)-1].length, players[len(players)-1].name, players[len(players)-1].health, players[len(players)-1].direct, players[len(players)-1].color = """+str(p.getAll())+"\n"
+                tosend+=str(p.name)+"|"+str(p.trail)
             conn.send(tosend.encode('utf-8'))
             keys += conn.recv(1024).decode('utf-8')
     except:
