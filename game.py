@@ -15,15 +15,18 @@ enter the public ip of the host machine instead of local host.
 import time, socket
 from random import randint as r
 
+#Import pygame and install it if its not installed
 try:
     import pygame
 except:
     try:
+        print('DB > Could not import pygame, attempting to install')
         import pip
         pip.main(['install', 'pygame'])
         import pygame
     except:
         print('Failed to install pygame, try doing this manually by entering\n\n\tpip install pygame\n\ninto your native console (ex:cmd) with the highest permissions (for cmd right click on cmd.exe and select run as administrator)')
+        quit()
 
 #Socket set up
 socket.setdefaulttimeout(10)
@@ -67,6 +70,7 @@ def generateFoods(d):
         food = [[r(0,width/10),r(0,height/10)]]
         while food in foods:
             food = [[r(0,width/10),r(0,height/10)]]
+        foods+=food
         
 
 #Function waits for next key press before continuing but also allows the user to quit
@@ -84,6 +88,9 @@ def rrfl(Script=[""]):
 #Main game loop
 while gamemode != 'end':
 
+    #get time
+    start = time.time()
+    
     #reset screen by drawing background
     screen.get_surface().fill((255,255,255))
 
@@ -106,7 +113,7 @@ while gamemode != 'end':
             if event.unicode in 'wasd': keys+= event.unicode
             elif event.unicode == '\r': keys+= 'r'
         elif event.type == pygame.MOUSEBUTTONDOWN: click = event.pos
-
+    
     #Process all activites and game events
     if gamemode in ['single','host'] and gamestate in ['playing']:
         for p in players:
@@ -159,7 +166,7 @@ while gamemode != 'end':
 
                 gamestate = 'gameover'
 
-                summary = rrfl(['You can do better than that','did you even try?','good run I guess','no comment',"you really are bad at this aren't you?",'maybe you should play something else'])
+                summary = rrfl(['You can do better than that','did you even try?','Muslims are gay *mic drop*','good run I guess','no comment',"you really are bad at this aren't you?",'maybe you should play something else'])
                 
                 for pos in p['tail']:
                     if pos != [-1,-1]:
@@ -270,7 +277,7 @@ while gamemode != 'end':
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             
-            s.bind(('localhost',8000))
+            s.bind(('',8000))
             print('DB > Listening\nDB > Waiting for client')
             s.listen()
             try:
@@ -350,7 +357,9 @@ exec(toexec)"""
     screen.flip()
 
     #slow down game
-    time.sleep(0.1)
+    end = time.time()
+    if 0.1-(end-start) > 0:
+        time.sleep(0.1-(end-start))
 
 #draw closing screen
 pygame.display.get_surface().fill((0,0,0))
