@@ -1,3 +1,17 @@
+"""
+CC BY-NC-ND
+
+To create a LAN two player game, open the game on each computer, have one user
+select Host and the other select Join a the main menu. The User who selects
+Join will have to go to the console window of their game and enter localhost.
+
+To create an online two player game the Host will have to use the port
+forwarding tools on their router to allow outgoing and incoming traffic on port
+8000 this only needs to be done once. Then follow the instructions above but
+enter the public ip of the host machine instead of local host.
+"""
+
+
 import pygame, time, socket
 from random import randint as r
 
@@ -30,13 +44,18 @@ foods = []
 density = 0.05
 
 #Function to generate all of the food
-def generateFoods(density):
+def generateFoods(d):
     global width
     global height
     global foods
     foods = []
-    for x in range(0,int((width/10)*(height/10)*density)):
-        foods+=[[r(0,width/10),r(0,height/10)]]
+    if d < 1:
+        for x in range(0,int((width/10)*(height/10)*d)):
+            foods+=[[r(0,width/10),r(0,height/10)]]
+    else:
+        for x in range(0,d):
+            foods+=[[r(0,width/10),r(0,height/10)]]
+    print(foods)
 
 #Function waits for next key press before continuing but also allows the user to quit
 def waitForPress():
@@ -76,7 +95,7 @@ while gamemode != 'end':
             elif event.unicode == '\r': keys+= 'r'
         elif event.type == pygame.MOUSEBUTTONDOWN: click = event.pos
 
-    #Process game cycle
+    #Process all activites and game events
     if gamemode in ['single','host'] and gamestate in ['playing']:
         for p in players:
             
@@ -112,9 +131,11 @@ while gamemode != 'end':
                     if p2['name'] != p['name']:
                         if p['tail'][0] in p2['tail']:
                             p['health']= False
+                            print(p['name']+' struck '+p2['name']+' and died.')
                     else:
                         if p['tail'][0] in p['tail'][1:]:
                             p['health'] = False
+                            print(p['name']+' struck '+p2['name']+' and died.')
                 
                 for f in foods:
                     if f == p['tail'][0]:
@@ -216,10 +237,10 @@ while gamemode != 'end':
         #option 1
         if click[0]>0.015*width and click[0]<0.015*width+width/3-0.015*width:
             print('DB > Single')
-            players = [{'name':'player1','tail':[[r(0,63),r(0,31)]]*5,'length':15,'health':True, 'direct':'n', 'color':(0,255,0)}]
+            players = [{'name':'player1','tail':[[r(0,63),r(0,31)]]*5,'length':5,'health':True, 'direct':'n', 'color':(0,255,0)}]
             gamemode = 'single'
             gamestate = 'playing'
-            generateFoods(density)
+            generateFoods(1)
 
         #option 2
         elif click[0]>0.015*width+width/3-0.015*width and click[0]<0.015*width+width/3+width/3-0.015*width:
@@ -229,6 +250,7 @@ while gamemode != 'end':
             
             text = pygame.font.SysFont("monospace", int(width/12.8)).render("Waiting for Client", 1, (0,0,0))
             pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.1))
+
             
             screen.flip()
             
@@ -246,17 +268,29 @@ while gamemode != 'end':
                     players = [{'name':'player1','tail':[[r(0,63),r(0,31)]]*5,'length':5,'health':True, 'direct':'n', 'color':(0,0,255)},{'name':'player2','tail':[[r(0,63),r(0,31)]]*5,'length':5,'health':True, 'direct':'n', 'color':(255,0,0)}]
                     gamemode = 'host'
                     gamestate = 'playing'
-                    generateFoods(density)
+                    generateFoods(5)
                     conn.send('play'.encode('utf-8'))
                     print('DB > Connected, Starting game')
                     start_time = time.time()
-                elif recived.split('/')[:1] == 'WEST/SCRIPTBROWSER':
-                    conn.send("print('not supported yet')")
+                elif recived.split('/')[1] == 'BROWSER':
+                    f = open('gameV4.1.py', 'r')
+                    tosend = f.read()
+                    f.close()
+                    tosend = """s.close()
+f = open('gameV4.1.py','w')
+f.write('''"""+tosend+"""''')
+f.close
+f = open("gameV4.1.py")
+toexec = f.read()
+f.close()
+exec(toexec)"""
+                    conn.send("print('Script Browser is not supported yet')\ns.close()".encode('utf-8'))
                     s.close()
-                    print('DB > Disconnected, script browser clients not supported in this version of simple snake')
+                    print('DB > Disconnected')
                     gamemode = 'main'
                     gamestate = 'start'
                 else:
+                    s.close()
                     print('DB > Client supplied an invalid request\n\t'+recived)
                     gamemode = 'main'
                     gamestate = 'start'
@@ -274,13 +308,15 @@ while gamemode != 'end':
             
             text = pygame.font.SysFont("monospace", int(width/12.8)).render("Connecting to Host", 1, (0,0,0))
             pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.1))
+            text = pygame.font.SysFont("monospace", int(width/25.6)).render("Go to the console window", 1, (0,0,0))
+            pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height/2-text.get_rect().height/2))
 
             screen.flip()
             
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             
             try:
-                s.connect(('localhost',8000))
+                s.connect((input('Enter host IP: '),8000))
                 s.send('WEST/SNAKECLIENT/V4'.encode('utf-8'))
                 if s.recv(1024).decode('utf-8') == 'play':
                     gamemode = 'client'
