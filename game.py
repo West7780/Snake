@@ -28,17 +28,6 @@ except:
         print('Failed to install pygame, try doing this manually by entering\n\n\tpip install pygame\n\ninto your native console (ex:cmd) with the highest permissions (for cmd right click on cmd.exe and select run as administrator)')
         quit()
 
-#import high score and other saved data
-try:
-    file = open('settings')
-    exec(file.read())
-    file.close()
-except:
-    highscore = 0
-    file = open('settings','w')
-    file.write('highscore = '+str(highscore))
-    file.close()
-
 #Socket set up
 socket.setdefaulttimeout(10)
 
@@ -55,7 +44,6 @@ screen.get_surface().fill((255,255,255))
 screen.set_icon(pygame.Surface((32,32)))
 text = pygame.font.SysFont("monospace", int(width/12.8)).render("Loading", 1, (0,0,0))
 screen.get_surface().blit(text, (width/2-text.get_rect().width/2, height/2-text.get_rect().height/2))
-
 screen.flip()
 
 #Create Game management vars
@@ -66,6 +54,19 @@ summary = ''
 players = []
 foods = []
 density = 0.05
+
+GameCycleTimes = [0,0,0,0,0,0,0,0,0,0]
+
+#import high score and other saved data
+try:
+    file = open('settings')
+    exec(file.read())
+    file.close()
+except:
+    highscore = 0
+    file = open('settings','w')
+    file.write('highscore = '+str(highscore))
+    file.close()
 
 #Function to generate all of the food
 def generateFoods(d):
@@ -317,7 +318,6 @@ while gamemode != 'end':
                     generateFoods(5)
                     conn.send('play'.encode('utf-8'))
                     print('DB > Connected, Starting game')
-                    start_time = time.time()
                 elif recived.split('/')[1] == 'BROWSER':
                     f = open('gameV4.1.py', 'r')
                     tosend = f.read()
@@ -362,18 +362,11 @@ exec(toexec)"""
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             
             try:
-                s.connect((input('Enter host IP: '),8000))
+                s.connect(('98.250.97.194',8000))
                 s.send('WEST/SNAKECLIENT/V4'.encode('utf-8'))
-                if s.recv(1024).decode('utf-8') == 'play':
-                    gamemode = 'client'
-                    gamestate = 'playing'
-                    start_time = time.time()
-                    print('DB > playing, Host started game')
-                else:
-                    print('DB > Host did not start the game')
-                    s.close()
-                    gamemode = 'main'
-                    gamestate = 'start'
+                gamemode = 'client'
+                gamestate = 'playing'
+                print('DB > Connected and playing')
             except:
                 s.close()
                 print('DB > connection failed')
@@ -385,6 +378,8 @@ exec(toexec)"""
 
     #slow down game and compensate for lag
     end = time.time()
+    GameCycleTimes = GameCycleTimes[1:]+[end-start]
+    if sum(GameCycleTimes)/len(GameCycleTimes) > 0.005: print('DB > GameCycleTimes avg',sum(GameCycleTimes)/len(GameCycleTimes))
     if 0.1-(end-start) > 0: time.sleep(0.1-(end-start))
 
 #draw closing screen
