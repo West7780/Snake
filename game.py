@@ -8,9 +8,12 @@ timer = time.clock
 #screen set up
 pygame.init()
 
-width,height = 640*2,320*2
+width,height = 640,320
 
 Scale = 10
+
+#client specific game data vars
+direct = r(1,4)
 
 #menu setup
 tab = 0
@@ -66,7 +69,7 @@ for X in range(0,int(((width/Scale)*(height/Scale))/500)): foods.append(food())
 
 #screen set up
 pygame.display.init()
-pygame.display.set_mode((width,height),pygame.FULLSCREEN)
+pygame.display.set_mode((width,height)) #,pygame.FULLSCREEN)
 pygame.display.set_caption(" ")
 pygame.display.get_surface().fill((255,255,255))
 pygame.display.set_icon(pygame.Surface((32,32)))
@@ -80,7 +83,7 @@ SUMMARY = ""
 width, height = pygame.display.Info().current_w, pygame.display.Info().current_h
 
 while GAMESTATE != "End":
-
+    
     #reset vars
     click = 0,0
     
@@ -100,10 +103,6 @@ while GAMESTATE != "End":
         if CompareList(players[0].trail,[-1,-1]):
             GAMESTATE = "GameOver"
             SUMMARY = "Score: "+str(players[0].length-5)
-    elif GAMEMODE == "TwoPlayerOnlineClient":
-        exec(s.recv(1024).decode('utf-8'))
-    elif GAMEMODE == "TwoPlayerOnlineHost":
-        s.send(("players = "+str(players)+"\nfoods = "+str(foods)))
     
     #event handling
     for event in pygame.event.get():
@@ -123,20 +122,11 @@ while GAMESTATE != "End":
                 width = 15*Scale
             elif height < 150:
                 height = 15*Scale
-            pygame.display.set_mode((width,height),pygame.FULLSCREEN)
+            pygame.display.set_mode((width,height)) #,pygame.FULLSCREEN)
         elif event.type == pygame.KEYDOWN:
-            if GAMESTATE == "Remote":
-                if event.unicode == "w" and p.direct != 3:
-                    s.send("1".encode('utf-8'))
-                elif event.unicode == "s" and p.direct != 1:
-                    s.send("3".encode('utf-8'))
-                elif event.unicode == "d" and p.direct != 4:
-                    s.send("2".encode('utf-8'))
-                elif event.unicode == "a" and p.direct != 2:
-                    s.send("4".encode('utf-8'))
-            elif GAMESTATE == "Playing":
+            if GAMESTATE == "Playing" and GAMEMODE not in ["TwoPlayerOnlineHost","TwoPlayerOnlineClient"]:
                 for p in players:
-                    if p.name in ["player1"]:
+                    if p.name in "player1":
                         if event.unicode == "w" and p.direct != 3:
                             p.direct = 1
                         elif event.unicode == "s" and p.direct != 1:
@@ -154,14 +144,40 @@ while GAMESTATE != "End":
                             p.direct = 2
                         elif event.key == 276 and p.direct != 2:
                             p.direct = 4
+            elif GAMEMODE in ["TwoPlayerOnlineHost","TwoPlayerOnlineClient"] and GAMESTATE == "Playing":
+                if GAMEMODE == "TwoPlayerOnlineHost":
+                    if event.unicode == "w" and p.direct != 3:
+                        players[0].direct = 1
+                    elif event.unicode == "s" and p.direct != 1:
+                        players[0].direct = 3
+                    elif event.unicode == "d" and p.direct != 4:
+                        players[0].direct = 2
+                    elif event.unicode == "a" and p.direct != 2:
+                        players[0].direct = 4
+                if GAMEMODE == "TwoPlayerOnlineClient":
+                    if event.unicode == "w" and direct != 3:
+                        direct = 1
+                    elif event.unicode == "s" and direct != 1:
+                        direct = 3
+                    elif event.unicode == "d" and direct != 4:
+                        direct = 2
+                    elif event.unicode == "a" and direct != 2:
+                        direct = 4
+                
         elif event.type == pygame.MOUSEBUTTONUP:
             click = event.pos
                             
     #Reset background       
     pygame.display.get_surface().fill((255,255,255))
-
+    
     #Draw remote game
-    if GAMESTATE == "TwoPlayerOnlineClient":
+    if GAMEMODE == "TwoPlayerOnlineClient" and GAMESTATE == 'Playing':
+        if GAMESTATE == "TwoPlayerOnlineHost":
+            print("Waiting to recieve controls from client")
+            players[1].direct = int(conn.recv(1024).decode('utf-8'))
+        print("sending")
+        s.send(str(direct).encode('utf-8'))
+        print("control sent")
         for p in players:
             #Draw Player
             for pos in p.trail:
@@ -171,10 +187,14 @@ while GAMESTATE != "End":
             pygame.draw.rect(pygame.display.get_surface(), f.color, (f.x*10,f.y*10,10,10), 0)
     
     #Game Play
-    if GAMESTATE in ["Playing","TwoPlayerOnlineHost"]:
+    if GAMESTATE in ["Playing"] and GAMEMODE in ['TwoPlayerOnlineHost','TwoPlayerOffline','SinglePlayerOffline']:
+        if GAMESTATE == "TwoPlayerOnlineHost":
+            print("Waiting to recieve controls from client")
+            players[1].direct = int(conn.recv(1024).decode('utf-8'))
+            print(direct)
         #mannage/draw players
         for p in players:
-
+            
             if p.health:
                 #movement
                 if p.direct == 1:
@@ -185,7 +205,7 @@ while GAMESTATE != "End":
                     p.y+= 1
                 elif p.direct == 4:
                     p.x-= 1
-
+                
                 #player v player collision
                 for p2 in players:
                     if p2 != p:
@@ -197,7 +217,7 @@ while GAMESTATE != "End":
                         if [p.x,p.y] in p.trail[1:]:
                             p.health = False
                             p.x,p.y = -1,-1
-
+                
                 #player v food collisions
                 for f in foods:
                     if [p.x,p.y] == [f.x,f.y]:
@@ -216,9 +236,15 @@ while GAMESTATE != "End":
             else:
                 p.x = -1
                 p.y = -1
-
+            
             #Handle player trail
             p.trail = [[p.x,p.y]]+p.trail[:p.length-1]
+
+            #send to client
+            if GAMEMODE == "TwoPlayerOnlineHost":
+                print("Waiting to send updated game data to client")
+                conn.send(str("players = "+str(players)+"\nfoods = "+str(foods)).encode('utf-8'))
+                print("Sent to client")
             
             #Draw Player
             for pos in p.trail:
@@ -242,9 +268,10 @@ while GAMESTATE != "End":
         players = []
         foods = []
         try:
-            if GAMEMODE == "TwoPlayerOnline": s.close()
+            if GAMEMODE in ["TwoPlayerOnlineHost","TwoPlayerOnlineClient"]: s.close()
         except:
             pass
+        print("connection closed")
             
     #Main menu
     elif GAMESTATE == "Main":
@@ -271,7 +298,7 @@ while GAMESTATE != "End":
                 for X in range(0,int(((width/Scale)*(height/Scale))/500)): foods.append(food())
                 GAMEMODE = "SinglePlayerOffline"
                 GAMESTATE = "Playing"
-            if tab == 1:
+            elif tab == 1:
                 if True:
                     host = ''
                     port = 8000
@@ -280,14 +307,14 @@ while GAMESTATE != "End":
                     print("Server Created")
                     s.listen()
                     print("Listening on port",port)
-                    s.accept()
+                    conn, addr = s.accept()
                     print("connected to",addr)
-                    if conn.recv(1024).decode == "WEST/SNAKECLIENT/V3.2":
+                    if conn.recv(1024).decode('utf-8') == "WEST/SNAKECLIENT/V3.2":
                         tab ==0
                         players = [player('player1',color=(250,0,0)),player('player2',color=(0,0,250))]
                         foods = []
                         for X in range(0,int(((width/Scale)*(height/Scale))/500)): foods.append(food())
-                        GAMEMODE = "TwoPlayerOnline"
+                        GAMEMODE = "TwoPlayerOnlineHost"
                         GAMESTATE = "Playing"
                 else:
                     print("Failed to create server and accept client")
@@ -295,7 +322,7 @@ while GAMESTATE != "End":
         elif click[0]>0.015*width+width/3-0.015*width and click[0]<0.015*width+width/3+width/3-0.015*width:
             if tab == 0:
                 print("Two Player Offline")
-                players = [player('player1',color=(250,0,0)),player('player2',color=(0,0,250))]
+                players = [player('TwoPlayerOnlineHost',color=(250,0,0)),player('TwoPlayerOnlineClient',color=(0,0,250))]
                 foods = []
                 for X in range(0,int(((width/Scale)*(height/Scale))/500)): foods.append(food())
                 GAMEMODE = "TwoPlayerOffline"
@@ -305,12 +332,28 @@ while GAMESTATE != "End":
         elif click[0]>0.015*width+width/3+width/3-0.015*width:
             if tab == 0:
                 tab = 1
+            elif tab == 1:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                    server = socket.gethostbyname('localhost')
+                    port = 8000
+
+                    s.connect((server,port))
+
+                    s.send("WEST/SNAKECLIENT/V3.2".encode('utf-8'))
+                    print("connected, starting game")
+
+                    GAMESTATE = "Playing"
+                    GAMEMODE = "TwoPlayerOnlineClient"
+                except:
+                    print("Failed to connect")
         
     #Update Display
     pygame.display.flip()
 
     #tick delay
-    time.sleep(0.1)
+    time.sleep(1)
 
 #end game screen
 pygame.display.get_surface().fill((0,0,0))
