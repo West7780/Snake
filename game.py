@@ -140,16 +140,16 @@ while gamemode != 'end':
             if p['health']:
                 
                 if p['name'] == 'player1':
-                    if 's' in keys.lower() and p['direct'] != 's': p['direct'] = 'n'
-                    elif 'w' in keys.lower() and p['direct'] != 'n': p['direct'] = 's'
-                    elif 'a' in keys.lower() and p['direct'] != 'e': p['direct'] = 'w'
-                    elif 'd' in keys.lower() and p['direct'] != 'w': p['direct'] = 'e'
+                    if 's' in keys and p['direct'] != 's': p['direct'] = 'n'
+                    elif 'w' in keys and p['direct'] != 'n': p['direct'] = 's'
+                    elif 'a' in keys and p['direct'] != 'e': p['direct'] = 'w'
+                    elif 'd' in keys and p['direct'] != 'w': p['direct'] = 'e'
                 
                 elif p['name'] == 'player2':
-                    if 's' in recived.lower() and p['direct'] != 's': p['direct'] = 'n'
-                    elif 'w' in recived.lower() and p['direct'] != 'n': p['direct'] = 's'
-                    elif 'a' in recived.lower() and p['direct'] != 'e': p['direct'] = 'w'
-                    elif 'd' in recived.lower() and p['direct'] != 'w': p['direct'] = 'e'
+                    if 's' in recived and p['direct'] != 's': p['direct'] = 'n'
+                    elif 'w' in recived and p['direct'] != 'n': p['direct'] = 's'
+                    elif 'a' in recived and p['direct'] != 'e': p['direct'] = 'w'
+                    elif 'd' in recived and p['direct'] != 'w': p['direct'] = 'e'
                 
                 if p['tail'][0][0] > 63:
                     p['tail'][0][0] = 0
