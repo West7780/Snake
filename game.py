@@ -28,6 +28,17 @@ except:
         print('Failed to install pygame, try doing this manually by entering\n\n\tpip install pygame\n\ninto your native console (ex:cmd) with the highest permissions (for cmd right click on cmd.exe and select run as administrator)')
         quit()
 
+#import high score and other saved data
+try:
+    file = open('settings')
+    exec(file.read())
+    file.close()
+except:
+    highscore = 0
+    file = open('settings','w')
+    file.write('highscore = '+str(highscore))
+    file.close()
+
 #Socket set up
 socket.setdefaulttimeout(10)
 
@@ -48,7 +59,7 @@ screen.get_surface().blit(text, (width/2-text.get_rect().width/2, height/2-text.
 screen.flip()
 
 #Create Game management vars
-gamestate = ''
+gamestate = 'start'
 gamemode = 'main'
 summary = ''
 
@@ -67,9 +78,9 @@ def generateFoods(d):
     else:
         num = range(0,d)
     for x in range(0,d):
-        food = [[r(0,width/10),r(0,height/10)]]
+        food = [[r(0,width/10-1),r(0,height/10-1)]]
         while food in foods:
-            food = [[r(0,width/10),r(0,height/10)]]
+            food = [[r(0,width/10-1),r(0,height/10-1)]]
         foods+=food
         
 
@@ -111,6 +122,14 @@ while gamemode != 'end':
                     gamestate = 'start'
                     gamemode = 'main'
             if event.unicode in 'wasd': keys+= event.unicode
+            if event.key == 273:
+                keys+= 'w'
+            elif event.key == 274:
+                keys+= 's'
+            elif event.key == 275:
+                keys+= 'd'
+            elif event.key == 276:
+                keys+= 'a'
             elif event.unicode == '\r': keys+= 'r'
         elif event.type == pygame.MOUSEBUTTONDOWN: click = event.pos
     
@@ -121,16 +140,16 @@ while gamemode != 'end':
             if p['health']:
                 
                 if p['name'] == 'player1':
-                    if 's' in keys and p['direct'] != 's': p['direct'] = 'n'
-                    elif 'w' in keys and p['direct'] != 'n': p['direct'] = 's'
-                    elif 'a' in keys and p['direct'] != 'e': p['direct'] = 'w'
-                    elif 'd' in keys and p['direct'] != 'w': p['direct'] = 'e'
+                    if 's' in keys.lower() and p['direct'] != 's': p['direct'] = 'n'
+                    elif 'w' in keys.lower() and p['direct'] != 'n': p['direct'] = 's'
+                    elif 'a' in keys.lower() and p['direct'] != 'e': p['direct'] = 'w'
+                    elif 'd' in keys.lower() and p['direct'] != 'w': p['direct'] = 'e'
                 
                 elif p['name'] == 'player2':
-                    if 's' in recived and p['direct'] != 's': p['direct'] = 'n'
-                    elif 'w' in recived and p['direct'] != 'n': p['direct'] = 's'
-                    elif 'a' in recived and p['direct'] != 'e': p['direct'] = 'w'
-                    elif 'd' in recived and p['direct'] != 'w': p['direct'] = 'e'
+                    if 's' in recived.lower() and p['direct'] != 's': p['direct'] = 'n'
+                    elif 'w' in recived.lower() and p['direct'] != 'n': p['direct'] = 's'
+                    elif 'a' in recived.lower() and p['direct'] != 'e': p['direct'] = 'w'
+                    elif 'd' in recived.lower() and p['direct'] != 'w': p['direct'] = 'e'
                 
                 if p['tail'][0][0] > 63:
                     p['tail'][0][0] = 0
@@ -159,15 +178,15 @@ while gamemode != 'end':
                 for f in foods:
                     if f == p['tail'][0]:
                         p['length']+=1
-                        foods[foods.index(f)] = [r(0,width/10),r(0,height/10)]
+                        foods[foods.index(f)] = [r(0,width/10-1),r(0,height/10-1)]
             
             else:
                 p['tail'] = [[-1,-1]] + p['tail'][:p['length']-1]
 
                 gamestate = 'gameover'
 
-                summary = rrfl(['You can do better than that','did you even try?','Muslims are gay *mic drop*','good run I guess','no comment',"you really are bad at this aren't you?",'maybe you should play something else'])
-                
+                if len(p['tail']) - 5 <= highscore: summary = rrfl(['You can do better than that','did you even try?','good run I guess','no comment',"you really are bad at this aren't you?",'maybe you should play something else'])
+                else: summary = rrfl(["New High Score!"]*9+["Fuck You"])
                 for pos in p['tail']:
                     if pos != [-1,-1]:
                         gamestate = 'playing'
@@ -227,12 +246,20 @@ while gamemode != 'end':
 
     #draw end game for single player
     elif gamemode == 'single' and gamestate == 'gameover':
+        if highscore < players[0]['length']-5:
+            highscore = players[0]['length']-5
+            print('DB > New High Score!')
+        file = open('settings','w')
+        file.write('highscore = '+str(highscore))
+        file.close()
         text = pygame.font.SysFont("monospace", int(width/12.8)).render("Game Over", 1, (0,0,0))
         pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.1))
         text = pygame.font.SysFont("monospace", int(width/25.6)).render(summary, 1, (0,0,0))
         pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height/2-text.get_rect().height/2))
         text = pygame.font.SysFont("monospace", int(width/25.6)).render('your score           '+str(players[0]['length']-5), 1, (0,0,255))
         pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.7))
+        text = pygame.font.SysFont("monospace", int(width/25.6)).render('high score           '+str(highscore), 1, (255,0,0))
+        pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.8))
         text = pygame.font.SysFont("monospace", int(width/25.6)).render('press escape to return to the main menu', 1, (0,0,0))
         pygame.display.get_surface().blit(text, (width/2-text.get_rect().width/2, height*.9))
 
@@ -356,10 +383,9 @@ exec(toexec)"""
     #update screen 
     screen.flip()
 
-    #slow down game
+    #slow down game and compensate for lag
     end = time.time()
-    if 0.1-(end-start) > 0:
-        time.sleep(0.1-(end-start))
+    if 0.1-(end-start) > 0: time.sleep(0.1-(end-start))
 
 #draw closing screen
 pygame.display.get_surface().fill((0,0,0))
