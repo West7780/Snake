@@ -1,4 +1,4 @@
-CC BY-NC-ND
+#Instructions
 
 To create a LAN two player game, open the game on each computer, have one user
 select Host and the other select Join a the main menu. The User who selects
